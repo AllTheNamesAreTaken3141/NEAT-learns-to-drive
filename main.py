@@ -1,6 +1,7 @@
 from re import L
 import pygame
 import os
+from math import sin, cos, radians
 import neat
 
 WIN_WIDTH = 800
@@ -11,8 +12,13 @@ RED = (255, 0, 0)
 CAR_IMG = pygame.transform.scale(pygame.image.load(os.path.join("imgs", "carsprite.png")), (64, 64))
 TRACK_IMG = pygame.image.load(os.path.join("imgs", "track.png"))
 
+RAY_SURFACE = pygame.Surface((8,8))
+pygame.draw.circle(RAY_SURFACE, WHITE, (4,4), 4)
+RAY_COLLIDE_MASK = pygame.mask.from_surface(RAY_SURFACE)
+
 class Track:
     IMG = TRACK_IMG
+    MASK = pygame.mask.from_surface(TRACK_IMG)
 
     def __init__(self):
         pass
@@ -22,15 +28,14 @@ class Track:
 
     def collide(self, car):
         car_mask = car.mask
-        self_mask = pygame.mask.from_surface(self.IMG)
         
         car_rect = car_mask.get_rect(center = (car.position.x, car.position.y))
-        self_rect = self_mask.get_rect(center = (400, 250))
+        self_rect = self.MASK.get_rect(center = (400, 250))
 
         offset_x = self_rect.x - car_rect.x
         offset_y = self_rect.y - car_rect.y
 
-        if car_mask.overlap(self_mask, (offset_x, offset_y)):
+        if car_mask.overlap(self.MASK, (offset_x, offset_y)):
             return True
         
         return False
@@ -48,28 +53,44 @@ class Car:
         self.velocity.rotate_ip(angle)
         self.angle = -angle
         self.mask = pygame.mask.from_surface(CAR_IMG)
+        self.rays = [[-90,0]]
+        self.distances = [0]
 
     def draw(self, win):
         rotated_image = pygame.transform.rotate(CAR_IMG, self.angle)
         new_rect = rotated_image.get_rect(center = CAR_IMG.get_rect(topleft = (self.position.x - 32, self.position.y - 32)).center)
-        win.blit(rotated_image, new_rect.topleft)
         self.mask = pygame.mask.from_surface(rotated_image)
+        win.blit(rotated_image, new_rect.topleft)
+
+        for ray in self.rays:
+            pygame.draw.line(win, RED, (self.position.x, self.position.y), (self.position.x + sin(radians(ray[0] + self.angle)) * ray[1], self.position.y + cos(radians(ray[0] + self.angle)) * ray[1]))
 
     def move(self):
-        self.position = self.position + self.velocity
+        pass
+        #self.position = self.position + self.velocity
 
     def turn(self, strength):
         """strength is between -1 and 1 and determines the amount the car turns. Negative values turn _ and positive values turn _"""
         self.velocity.rotate_ip(self.ROT_VEL * strength)
         self.angle -= self.ROT_VEL * strength
 
+    def collide_ray(self, angle, distance, track):
+        position = (sin(radians(angle)) * distance + self.position.x, cos(radians(angle)) * distance + self.position.y)
 
-def draw_window(win, track, car, colliding):
-    if colliding:
-        win.fill(RED)
-    else:
-        win.fill(WHITE)
+        ray_rect = RAY_COLLIDE_MASK.get_rect(center = (position[0], position[1]))
+        track_rect = track.MASK.get_rect(center = (400, 250))
+
         
+
+    def raycast(self):
+        for r in range(len(self.rays)):
+            self.rays[r][1] = 50
+            
+
+
+
+def draw_window(win, track, car):
+    win.fill(WHITE)    
 
     track.draw(win)
     car.draw(win)
@@ -97,8 +118,9 @@ def main():
         elif keys[pygame.K_RIGHT]:
             car.turn(1)
 
+        car.raycast()
         car.move()
 
-        draw_window(win, track, car, track.collide(car))
+        draw_window(win, track, car)
 
 main()
