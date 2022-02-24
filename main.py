@@ -8,7 +8,7 @@ WIN_HEIGHT = 500
 
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
-CAR_IMG = pygame.transform.scale(pygame.image.load(os.path.join("imgs", "carsprite.png")), (80, 80))
+CAR_IMG = pygame.transform.scale(pygame.image.load(os.path.join("imgs", "carsprite.png")), (64, 64))
 TRACK_IMG = pygame.image.load(os.path.join("imgs", "track.png"))
 
 class Track:
@@ -21,10 +21,20 @@ class Track:
         win.blit(self.IMG, (0, 0))
 
     def collide(self, car):
-        car_mask = car.get_mask()
-        self.mask = pygame.mask.from_surface(self.IMG)
-        if car_mask.overlap(self.mask, (car.position.x, car.position.y)):
+        car_mask = car.mask
+        self_mask = pygame.mask.from_surface(self.IMG)
+        
+        car_rect = car_mask.get_rect(center = (car.position.x, car.position.y))
+        self_rect = self_mask.get_rect(center = (400, 250))
+
+        offset_x = self_rect.x - car_rect.x
+        offset_y = self_rect.y - car_rect.y
+
+        if car_mask.overlap(self_mask, (offset_x, offset_y)):
             return True
+        
+        return False
+
 
 
 class Car:
@@ -37,11 +47,13 @@ class Car:
         self.velocity = pygame.Vector2(-self.VEL, 0)
         self.velocity.rotate_ip(angle)
         self.angle = -angle
+        self.mask = pygame.mask.from_surface(CAR_IMG)
 
     def draw(self, win):
         rotated_image = pygame.transform.rotate(CAR_IMG, self.angle)
-        new_rect = rotated_image.get_rect(center = CAR_IMG.get_rect(topleft = (self.position.x - 40, self.position.y - 40)).center)
+        new_rect = rotated_image.get_rect(center = CAR_IMG.get_rect(topleft = (self.position.x - 32, self.position.y - 32)).center)
         win.blit(rotated_image, new_rect.topleft)
+        self.mask = pygame.mask.from_surface(rotated_image)
 
     def move(self):
         self.position = self.position + self.velocity
@@ -51,8 +63,6 @@ class Car:
         self.velocity.rotate_ip(self.ROT_VEL * strength)
         self.angle -= self.ROT_VEL * strength
 
-    def get_mask(self):
-        return pygame.mask.from_surface(self.IMG)
 
 def draw_window(win, track, car, colliding):
     if colliding:
