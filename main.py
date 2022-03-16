@@ -63,8 +63,6 @@ class Car:
         self.mask = pygame.mask.from_surface(rotated_image)
         win.blit(rotated_image, new_rect.topleft)
 
-        
-
     def move(self):
         self.position = self.position + self.velocity
 
